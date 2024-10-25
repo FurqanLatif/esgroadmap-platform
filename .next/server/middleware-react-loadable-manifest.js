@@ -1,0 +1,1 @@
+self.__REACT_LOADABLE_MANIFEST="{\"containers/target/table.tsx -> @/components/data-table\":{\"id\":\"containers/target/table.tsx -> @/components/data-table\",\"files\":[\"static/chunks/_app-pages-browser_src_components_data-table_index_tsx.js\"]}}"

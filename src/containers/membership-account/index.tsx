@@ -39,8 +39,8 @@ const MembershipAccount = () => {
 	if (!plan) throw new Error("Invalid level");
 
 	const [data, setData] = useState<FormData>(initialData);
-
 	const [loading, setLoading] = useState(false);
+	const [suggestions, setSuggestions] = useState<string[]>([]);
 
 	const handleChange = (key: keyof FormData) => async (e: any) => {
 		setData((prev) => {
@@ -52,6 +52,10 @@ const MembershipAccount = () => {
 				},
 			};
 		});
+		// Hide suggestions when typing in username
+		if (key === "username") {
+			setSuggestions([]);
+		}
 	};
 
 	const togglePassword = (key: keyof typeof showPassword) => {
@@ -118,46 +122,78 @@ const MembershipAccount = () => {
 		});
 	};
 
+	const handleSuggestionClick = (suggestion: string) => {
+		setData((prev) => ({
+			...prev,
+			username: {
+				value: suggestion,
+				error: "",
+			},
+		}));
+		setSuggestions([]); // Hide suggestions after selecting one
+	};
+
 	const handleSubmit = async () => {
 		try {
 			setLoading(true);
-			const errors = await validateData();
 
+			const errors = await validateData();
 			if (errors) {
+				setErrors(errors);
 				setLoading(false);
-				return setErrors(errors);
+				return;
 			}
 
 			const signupData = transformValues(data);
 
-			const user = await auth.signup({
-				...signupData,
-				plan: level === 2 ? 1 : level,
+			const response = await fetch("/api/auth/signup", {
+				method: "POST",
+				headers: {
+					"Content-Type": "application/json",
+				},
+				body: JSON.stringify({
+					...signupData,
+					plan: level === 2 ? 1 : level,
+				}),
 			});
-			if ("paymentLink" in plan && plan.paymentLink) {
-				toast.success(
-					`Your information has been saved! We are redirecting you to checkout shortly....`
-				);
 
-				setTimeout(() => {
-					window.location.href =
-						plan.paymentLink + `?prefilled_email=${user.email}`;
-				}, 1000);
+			const responseData = await response.json();
 
-				window.location.href =
-					plan.paymentLink + `?prefilled_email=${user.email}`;
-			} else {
-				toast.success(
-					`Congratualtions ${user.username}, your account has been created!`
-				);
+			if (!response.ok) {
+				if (responseData.error === "Username already exists" && responseData.suggestions) {
+					toast.error("Username already exists. Please choose another one.");
+					setSuggestions(responseData.suggestions); // Show suggestions
+				} else if (responseData.error === "Email already exists") {
+					// Set error for email
+					setData((prev) => ({
+						...prev,
+						email: {
+							...prev.email,
+							error: "Email already exists",
+						},
+					}));
+					toast.error("Email already exists. Click forgot password to recover your account.");
+				} else {
+					toast.error(responseData.error || "An error occurred.");
+				}
+				setLoading(false);
+				return;
+			}
+			
+
+			if (responseData.success) {
+				const user = responseData.data;
+				toast.success(`Welcome ${user.username}, your account has been created!`);
 				router.replace("/auth/login");
+				setData({ ...initialData });
+			} else {
+				toast.error(responseData.error || "An error occurred during signup.");
 			}
 
-			setData({ ...initialData });
 			setLoading(false);
 		} catch (error) {
+			toast.error("An unexpected error occurred.");
 			setLoading(false);
-			toast.error((error as Error)?.message);
 		}
 	};
 
@@ -179,35 +215,17 @@ const MembershipAccount = () => {
 						</p>
 					</div>
 					<p className="text-[16px] text-black">
-						You have selected the <strong>{plan.title}</strong> membership
-						level.
+						You have selected the <strong>{plan.title}</strong> membership level.
 					</p>
 					<p className="text-[16px] text-black">{plan.title} PLAN</p>
 					<p className="text-[16px] text-black">
 						The price for membership {plan.price[1]}
 					</p>
-
-					{/* <p className="text-[12px] text-black font-normal">
-						Do you have a discount code?{" "}
-						<span className="underline cursor-pointer">
-							Click here to enter your discount code
-						</span>
-					</p> */}
 				</section>
-
-				<div
-					className="w-100 h-[2px] mb-8"
-					style={{ backgroundColor: "rgb(203, 213, 224)" }}
-				/>
 
 				<section className="flex flex-col gap-5 mb-8">
 					<div className="w-100 flex items-center gap-4">
-						<h3 className="text-[25px] text-[#219e98] font-semibold">
-							Account Information
-						</h3>
-						<p className="italic text-[12px] text-[#219e98] font-normal pt-2 cursor-pointer">
-							Already have an account? Log in here
-						</p>
+						<h3 className="text-[25px] text-[#219e98] font-semibold">Account Information</h3>
 					</div>
 
 					<div className="w-100 space-y-2">
@@ -224,8 +242,26 @@ const MembershipAccount = () => {
 						{data.username.error && (
 							<p className="text-red-500 text-[12px]">{data.username.error}</p>
 						)}
-					</div>
-
+					</div> 
+					{/* Suggestions */}
+					{suggestions.length > 0 && (
+						<div className="mt-4">
+							<p className="text-[#219e98] font-semibold">
+								Username already exists. Try one of these:
+							</p>
+							<ul>
+								{suggestions.map((suggestion) => (
+									<li
+										key={suggestion}
+										className="text-gray-700 cursor-pointer"
+										onClick={() => handleSuggestionClick(suggestion)}
+									>
+										{suggestion}
+									</li>
+								))}
+							</ul>
+						</div>
+					)} 
 					<div className="w-100 space-y-2">
 						<p className="font-semibold text-[16px] text-[#000000]">Password</p>
 						<div className="w-100 flex items-center gap-1">
@@ -240,11 +276,7 @@ const MembershipAccount = () => {
 									onClick={togglePassword("password")}
 									className="text-[18px] text-[#000000] cursor-pointer focus:outline-none"
 								>
-									{showPassword.password ? (
-										<EyeOff size={18} />
-									) : (
-										<Eye size={18} />
-									)}
+									{showPassword.password ? <EyeOff size={18} /> : <Eye size={18} />}
 								</div>
 							</div>
 							<p className="text-[18px] text-[#000000]">*</p>
@@ -290,6 +322,7 @@ const MembershipAccount = () => {
 						<p className="font-semibold text-[16px] text-[#000000]">
 							Email Address
 						</p>
+
 						<div className="w-100 flex items-center gap-1">
 							<input
 								type="text"
@@ -299,8 +332,21 @@ const MembershipAccount = () => {
 							/>
 							<p className="text-[18px] text-[#000000]">*</p>
 						</div>
+
 						{data.email.error && (
-							<p className="text-red-500 text-[12px]">{data.email.error}</p>
+							<p className="text-red-500 text-[12px]">
+								{data.email.error === "Email already exists"
+									? (
+										<>
+											Email already exists. Click{" "}
+											<a href="/auth/lost-password" className="text-blue-500 underline">
+												forgot password
+											</a>{" "}
+											to recover your account.
+										</>
+									)
+									: data.email.error}
+							</p>
 						)}
 					</div>
 
@@ -362,5 +408,4 @@ const MembershipAccount = () => {
 		</div>
 	);
 };
-
 export default MembershipAccount;

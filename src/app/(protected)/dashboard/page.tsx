@@ -12,7 +12,7 @@ const dashboardItems = [
 				id: 1,
 				title: "Carbon Reduction Targets",
 				buttonText: "Use Tool",
-				link: "",
+				link: "#",
 				image:
 					"https://esgroadmap.com/wp-content/uploads/2021/12/co2-carbon-dioxide-carbon-3139230.jpg",
 			},
@@ -76,14 +76,14 @@ const dashboardItems = [
 				id: 1,
 				title: "Faqs",
 				buttonText: "View",
-				link: "",
+				link: "#",
 				image: "https://esgroadmap.com/wp-content/uploads/2022/04/reporter-journalist-news-6819472.jpg",
 			},
 			{
 				id: 2,
 				title: "Feedback Form",
 				buttonText: "View",
-				link: "",
+				link: "#",
 				image: "https://esgroadmap.com/wp-content/uploads/2023/08/Feedback_Icon.png"
 			}
 		]

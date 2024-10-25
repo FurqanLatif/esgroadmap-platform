@@ -1,0 +1,9 @@
+{
+  "/_not-found/page": "app/_not-found/page.js",
+  "/favicon.ico/route": "app/favicon.ico/route.js",
+  "/(protected)/dashboard/page": "app/(protected)/dashboard/page.js",
+  "/(protected)/dashboard/targets/[id]/page": "app/(protected)/dashboard/targets/[id]/page.js",
+  "/(protected)/dashboard/tickets/new/page": "app/(protected)/dashboard/tickets/new/page.js",
+  "/(protected)/dashboard/account/page": "app/(protected)/dashboard/account/page.js",
+  "/(public)/auth/lost-password/page": "app/(public)/auth/lost-password/page.js"
+}
